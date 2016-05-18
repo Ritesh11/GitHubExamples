@@ -7,4 +7,6 @@
     <dimen name="text_size_normal_12sp">12sp</dimen>
     <dimen name="text_size_large_16sp">16sp</dimen>
     <dimen name="padding_small_5dp">5dp</dimen>
+    <dimen name="text_size_extra_extra_large_20sp">20dp</dimen>
+    <dimen name="circularbarsize">50dp</dimen>
 </resources>
