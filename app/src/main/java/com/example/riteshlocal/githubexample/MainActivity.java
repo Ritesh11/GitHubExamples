@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -23,6 +24,7 @@ import com.google.gson.Gson;
 import com.lsjwzh.widget.materialloadingprogressbar.CircleProgressBar;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import butterknife.Bind;
@@ -159,7 +161,15 @@ public class MainActivity extends AppCompatActivity implements Callback<Response
                 for (HotEventListModel data : responseBean.getEvents().getHot_event_list_model()) {
 
                     hotEventList.add(data);
+
                     db.addContact(data);
+                }
+
+                List<HotEventListModel> contacts = db.getAllContacts();
+                for (HotEventListModel cn : contacts) {
+                    String log = "Id: "+cn.getEvent_id()+" ,Name: " + cn.getDoer_name() + " ,Phone: " + cn.getEvent_title();
+                    // Writing Contacts to log
+                    Log.d("Name: ", log);
                 }
 
                 if (hotEventList.size() > 0) {
