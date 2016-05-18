@@ -1,6 +1,9 @@
 package com.example.riteshlocal.githubexample;
 
+import android.content.Context;
+import android.content.DialogInterface;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -14,6 +17,8 @@ import com.example.riteshlocal.githubexample.Adapter.AdapterHotEvents;
 import com.example.riteshlocal.githubexample.Model.HotEventListModel;
 import com.example.riteshlocal.githubexample.Bean.ResponseBean;
 import com.example.riteshlocal.githubexample.Service.CallAPI;
+import com.example.riteshlocal.githubexample.Service.ConnectionDetector;
+import com.example.riteshlocal.githubexample.Service.DatabaseHandler;
 import com.google.gson.Gson;
 import com.lsjwzh.widget.materialloadingprogressbar.CircleProgressBar;
 
@@ -49,6 +54,11 @@ public class MainActivity extends AppCompatActivity implements Callback<Response
     @Bind(R.id.progressBar)
     CircleProgressBar progress;
 
+    // flag for Internet connection status
+    Boolean isInternetPresent = false;
+
+    // Connection detector class
+    ConnectionDetector cd;
 
     boolean checkprogressvalidation = false;
     @Override
@@ -68,7 +78,10 @@ public class MainActivity extends AppCompatActivity implements Callback<Response
             hotEventList.clear();
         }
 
-        callAPI();
+
+        // creating connection detector class instance
+        cd = new ConnectionDetector(getApplicationContext());
+        checkConnection();
 
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -78,20 +91,41 @@ public class MainActivity extends AppCompatActivity implements Callback<Response
                 if (hotEventList.size() > 0) {
                     hotEventList.clear();
                 }
-
                 callAPI();
             }
         });
     }
 
 
+    public void checkConnection()
+    {
+        isInternetPresent = cd.isConnectingToInternet();
+
+        // check for Internet status
+        if (isInternetPresent) {
+            // Internet Connection is Present
+            // make Retrofit requests
+            mTv_reload.setVisibility(View.INVISIBLE);
+            mSwipeRefreshLayout.setRefreshing(true);
+            if (hotEventList.size() > 0) {
+                hotEventList.clear();
+            }
+            callAPI();
+        } else {
+            // Internet connection is not present
+            // Ask user to connect to Internet
+            showAlertDialog(MainActivity.this, "No Internet Connection",
+                    "You don't have internet connection.", false);
+
+            mTv_reload.setVisibility(View.VISIBLE);
+        }
+    }
 
     public void callAPI() {
 
         if (checkprogressvalidation == false) {
             progress.setVisibility(View.VISIBLE);
         }
-
 
         String baseUrl = "http://mobilytedev.com/livepopcorn/app/";
         final OkHttpClient okHttpClient = new OkHttpClient.Builder()
@@ -107,24 +141,25 @@ public class MainActivity extends AppCompatActivity implements Callback<Response
         Call<ResponseBody> call = api.getEventList("a152e84173914146e4bc4f391sd0f686ebc4f31","1");
         call.enqueue(this);
     }
-
+    DatabaseHandler db;
 
     @Override
     public void onResponse(Response<ResponseBody> response) {
         try {
 
             checkprogressvalidation = true;
-
             progress.setVisibility(View.GONE);
             mSwipeRefreshLayout.setRefreshing(false);
             Gson gson = new Gson();
             ResponseBean responseBean = gson.fromJson(response.body().string(), ResponseBean.class);
+            db = new DatabaseHandler(this);
             if (responseBean.getStatus().equals("1")) {
 
                 // System.out.println("Response is = "+response);
                 for (HotEventListModel data : responseBean.getEvents().getHot_event_list_model()) {
 
                     hotEventList.add(data);
+                    db.addContact(data);
                 }
 
                 if (hotEventList.size() > 0) {
@@ -162,15 +197,10 @@ public class MainActivity extends AppCompatActivity implements Callback<Response
 
     @OnClick(R.id.represh_data_tv)
     public void methodTvReloadApi(View view) {
-        mTv_reload.setVisibility(View.INVISIBLE);
-        mSwipeRefreshLayout.setRefreshing(true);
-        if (hotEventList.size() > 0) {
-            hotEventList.clear();
-        }
-
-        callAPI();
-
+        checkConnection();
     }
+
+
 
 
     @Override
@@ -179,6 +209,23 @@ public class MainActivity extends AppCompatActivity implements Callback<Response
         checkprogressvalidation = false;
     }
 
+    public void showAlertDialog(Context context, String title, String message, Boolean status) {
+        AlertDialog alertDialog = new AlertDialog.Builder(context).create();
 
+        // Setting Dialog Title
+        alertDialog.setTitle(title);
+
+        // Setting Dialog Message
+        alertDialog.setMessage(message);
+
+        // Setting OK Button
+        alertDialog.setButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
+
+        // Showing Alert Message
+        alertDialog.show();
+    }
 
 }
